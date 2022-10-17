@@ -1,0 +1,1 @@
+pyinstaller 学习.py --noconsole --hidden-import PySide5.QtXml --icon="myapp.ico"
