@@ -1,4 +1,4 @@
-# -- coding: utf-8 --**、
+# _*_ coding:utf-8 _*_
 import json
 import linecache
 import os
@@ -8,6 +8,8 @@ import hashlib
 import urllib
 import random
 import codecs
+from time import sleep
+
 from PyQt5.Qt import *
 from PyQt5.uic import loadUi
 from PyQt5 import uic
@@ -36,6 +38,8 @@ api_read2 = json.loads(api_read1)
 dict_api = eval(str(api_read2))
 appid = dict_api['baidu_id']  # 填写你的appid
 secretKey = dict_api['baidu_key']  # 填写你的密钥
+delay = dict_api['delay']
+# print(delay)
 api_read.close()
 
 
@@ -53,7 +57,7 @@ so = SignalStore()
 
 class Child:
     def __init__(self):
-        self.api = uic.loadUi("api.ui")
+        # self.api = uic.loadUi("api.ui")
         self.ui = uic.loadUi("fanyi.ui")
 
 
@@ -65,9 +69,17 @@ class Trans(Child):
         self.ui.pushButton_3.clicked.connect(self.handleCalc)
         self.ui.pushButton_2.clicked.connect(self.output)
         self.ui.pushButton.clicked.connect(self.input)
-        self.ui.pushButton_4.clicked.connect(self.writeapi)
+        # self.ui.pushButton_4.clicked.connect(self.writeapi)
         self.ui.lineEdit.textChanged.connect(self.input_text_edit)
         self.ui.lineEdit_2.textChanged.connect(self.output_path_edit)
+
+        #     self.ui.pushButton_4.clicked.connect(self.set_delay)
+        self.ui.doubleSpinBox.setValue(float(delay))
+
+    # def set_delay(self):
+    #     global delay
+    #     delay = self.ui.doubleSpinBox.value()
+    #     return delay
 
     # def closeEvent(self, event):
     #     sys.exit(app.exec_())
@@ -96,6 +108,9 @@ class Trans(Child):
         self.ui.lineEdit_2.setText(str(output_path))
 
     def handleCalc(self):
+        global delay
+        delay = self.ui.doubleSpinBox.value()
+
         def start():
             global file
             global count
@@ -104,6 +119,10 @@ class Trans(Child):
             # print(file)
             count = len(open(file, 'r', encoding='utf-8').readlines())  # 行数
             # print("总行数：", count)
+            with codecs.open(file, 'a', encoding='utf-8') as write_source:
+                write_source.write('\n')
+            write_source.close()
+
             self.ui.progressBar.setRange(0, count)
             str_start = "="  # 检索的起始字符
             text_ext = []  # 提取字符
@@ -117,9 +136,18 @@ class Trans(Child):
         worker1.start()
 
     def while1(self):
-        def run(count_now=0):
-            while count_now <= count:  # 遍历行
+        def run():
+            global count_now
+            count_now = 1
+            while count_now < count + 1:  # 遍历行
+                self.ui.pushButton_3.setEnabled(False)
+                self.ui.pushButton.setEnabled(False)
+                self.ui.pushButton_2.setEnabled(False)
+                self.ui.label_6.setText("正在翻译...")
 
+                # print(delay)
+
+                sleep(float(delay))
                 text = linecache.getline(input_file, count_now)
                 # print(text)
                 text_ext1 = re.findall(r'(?<==).+', text)  # 匹配等号后内容
@@ -155,7 +183,7 @@ class Trans(Child):
                 # response是HTTPResponse对象
                 response = httpClient.getresponse()
                 result_all = response.read().decode("utf-8")
-                httpClient.close()
+
 
                 ##——————————笨逼解析
                 result = json.loads(result_all)
@@ -190,8 +218,16 @@ class Trans(Child):
                 with codecs.open(file_name, 'a', encoding='utf-8') as out_put_file:
                     out_put_file.write(str(text_top) + str(result3) + '\n')
                 # self.read_now()
+
             else:
-                count_now = 0
+                count_now = 1
+                httpClient.close()
+                out_put_file.close()
+                self.ui.label_6.setText("翻译完成")
+                self.ui.pushButton_3.setEnabled(True)
+                self.ui.pushButton.setEnabled(True)
+                self.ui.pushButton_2.setEnabled(True)
+
                 # print("终止")
 
         your_thread = Thread(target=run())
@@ -203,9 +239,9 @@ class Trans(Child):
         # worker2 = Thread(target=run())
         # worker2.run()
 
-    def writeapi(self):
-        child = Child()
-        child.api.show()
+    # def writeapi(self):
+    #     child = Child()
+    #     child.api.show()
 
     # def closeEvent(self, event):
     #     """
@@ -225,10 +261,10 @@ class Trans(Child):
     #     else:
     #         event.ignore()
 
+
 app = QApplication([])
 
 stats = Trans()
 stats.ui.show()
 app.exec_()
 os._exit(0)
-
